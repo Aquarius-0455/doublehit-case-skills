@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Output files
+skills/*/output/*.xlsx
+skills/*/output/*.json
+!skills/*/output/demo.json
+
+# IDEs
+.vscode/
+.idea/
+.gemini/
