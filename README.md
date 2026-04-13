@@ -37,29 +37,29 @@
 
 将 PRD 片段、Story 描述或业务规则直接粘贴至对话框。工具会：
 
-1. **识别输入类型** → 判断是否需要追问
+1. **识别输入类型** → 判断是否需要询问缺失信息
 2. **原子节点提取** → 扫描所有业务约束、判定点与审计要求
-3. **选定设计方法** → 输出决策矩阵预览
-4. **生成测试用例** → 写入 `output/cases_buffer.json`
+3. **选定设计方法** → 输出决策矩阵预览（含 L1/L2/L3 配比）
+4. **生成测试用例** → 写入 `skills/doublehit-case-skill/output/cases_buffer.json`
 
 ---
 
 ### 3. 导出为 Excel
 
-AI 会自动生成导出命令，你也可以手动执行（支持通过 stdin 输入数据）：
+AI 会自动生成导出命令，你也可以手动执行（示例为从根目录运行）：
 
 ```bash
 # 安装依赖
-pip install openpyxl
+pip install -r requirements.txt
 
-# 示例：通过管道传输 JSON 数据进行导出
-echo 'JSON内容' | python skills/doublehit-case-skill/scripts/case_exporter.py - output/TestCases.xlsx new
+# 示例：执行导出（new 模式代表覆盖，append 模式代表追加）
+python skills/doublehit-case-skill/scripts/case_exporter.py skills/doublehit-case-skill/output/cases_buffer.json skills/doublehit-case-skill/output/TestCases.xlsx new
 ```
 
 ---
 
 ```
-lm-dlam-skill/ (项目根目录)
+doublehit-case-skill/ (项目根目录)
 ├── README.md                 # 项目主文档
 ├── requirements.txt          # Python 依赖
 └── skills/doublehit-case-skill/    # 核心工具包
