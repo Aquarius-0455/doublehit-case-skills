@@ -1,0 +1,22 @@
+{
+  "name": "doublehit-case-skills-marketplace",
+  "owner": {
+    "name": "Aquarius-0455"
+  },
+  "plugins": [
+    {
+      "name": "doublehit-case-skills",
+      "version": "1.0.0",
+      "description": "Generate high-coverage test cases from PRD, Story, feature lists, and business rules, then export standardized cases to Excel.",
+      "author": {
+        "name": "Aquarius-0455"
+      },
+      "source": {
+        "source": "url",
+        "url": "https://github.com/Aquarius-0455/doublehit-case-skills.git"
+      },
+      "category": "development",
+      "homepage": "https://github.com/Aquarius-0455/doublehit-case-skills"
+    }
+  ]
+}
