@@ -2,8 +2,6 @@ import json
 import os
 import re
 import sys
-from pathlib import Path
-from datetime import datetime
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
@@ -209,7 +207,7 @@ def main():
         print("  mode=new    : Force create new file (overwrites existing)")
         print("  mode=append : Append to existing file (default)")
         print()
-        print("Example: cat cases.json | python case_exporter.py - output.xlsx")
+        print("Example: python case_exporter.py cases.json output.xlsx")
         sys.exit(1)
 
     input_arg = sys.argv[1]

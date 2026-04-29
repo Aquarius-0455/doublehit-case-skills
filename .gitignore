@@ -7,3 +7,7 @@ __pycache__/
 .vscode/
 .idea/
 .gemini/
+
+# Generated skill outputs
+skills/**/output/*
+!skills/**/output/.gitkeep
