@@ -1,7 +1,7 @@
 ---
 name: doublehit-case-skills
 description: >
-  Generate high-coverage test cases from PRD, Story, feature lists, business rules, or requests such as 编写测试用例、设计测试场景、查缺补漏、补充异常逻辑、分析需求. Extract atomic requirements, choose suitable test design methods, output standardized JSON, and export to Excel with the bundled script.
+  Trigger on wake word 双击666, or generate high-coverage test cases from PRD, Story, feature lists, business rules, or requests such as 编写测试用例、设计测试场景、查缺补漏、补充异常逻辑、分析需求. Extract atomic requirements, choose suitable test design methods, output standardized JSON, and export to Excel with the bundled script.
 ---
 
 # doublehit-case-skills 测试用例生成工具
