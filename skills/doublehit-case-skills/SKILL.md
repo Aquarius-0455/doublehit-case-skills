@@ -139,26 +139,43 @@ JSON 必须是数组，结构字符使用半角引号、冒号、逗号和中括
 执行流程：
 
 1. 生成标准 JSON 数组。
-2. 写入 `skills/doublehit-case-skills/output/cases_buffer.json`。
-3. 校验 JSON 合法性：
+2. 写入前先做轻量写入探测，确认当前环境可用的写入方式；不要直接把大段 JSON 交给未经验证的写入工具。
+
+推荐探测顺序：
+
+- 首选 `Read + Write`：先读取目标文件；如果不存在，先尝试读取并接受“文件不存在”结果，再使用 `Write` 写入正式 JSON。
+- 如果 `Write` 返回 `File has not been read yet`、权限限制或其他工具错误，改用 Bash 写入探测：
+
+```bash
+mkdir -p skills/doublehit-case-skills/output && printf '[]' > skills/doublehit-case-skills/output/.write_probe.json && python -c "import json; json.load(open('skills/doublehit-case-skills/output/.write_probe.json', encoding='utf-8'))"
+```
+
+- 如果 Bash 写入不可用，再用 Python 写入探测：
+
+```bash
+python -c "from pathlib import Path; p=Path('skills/doublehit-case-skills/output/.write_probe.json'); p.parent.mkdir(parents=True, exist_ok=True); p.write_text('[]', encoding='utf-8')"
+```
+
+3. 使用探测通过的方式写入 `skills/doublehit-case-skills/output/cases_buffer.json`。
+4. 校验 JSON 合法性：
 
 ```bash
 python -c "import json; json.load(open('skills/doublehit-case-skills/output/cases_buffer.json', encoding='utf-8'))"
 ```
 
-4. 第一次导出或需要覆盖旧文件时使用 `new`：
+5. 第一次导出或需要覆盖旧文件时使用 `new`：
 
 ```bash
 python skills/doublehit-case-skills/scripts/case_exporter.py skills/doublehit-case-skills/output/cases_buffer.json skills/doublehit-case-skills/output/TestCases.xlsx new
 ```
 
-5. 分批追加导出时使用 `append`：
+6. 分批追加导出时使用 `append`：
 
 ```bash
 python skills/doublehit-case-skills/scripts/case_exporter.py skills/doublehit-case-skills/output/cases_buffer.json skills/doublehit-case-skills/output/TestCases.xlsx append
 ```
 
-6. 确认导出命令成功后，向用户提供 Excel 文件路径。
-7. 导出完成后可删除缓冲文件，或将其重置为 `[]`，避免下次生成混入旧数据。
+7. 确认导出命令成功后，向用户提供 Excel 文件路径。
+8. 导出完成后可删除缓冲文件，或将其重置为 `[]`，避免下次生成混入旧数据。
 
 如果预计用例超过 15 条，建议分批生成并用 `append` 追加，降低单次输出过长导致的失败概率。
