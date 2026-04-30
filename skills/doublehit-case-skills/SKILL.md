@@ -132,57 +132,104 @@ JSON 必须是数组，结构字符使用半角引号、冒号、逗号和中括
 
 ## 7. 文件与导出流程
 
-默认缓冲文件：`skills/doublehit-case-skills/output/cases_buffer.json`
-默认导出脚本：`skills/doublehit-case-skills/scripts/case_exporter.py`
-默认导出文件：`skills/doublehit-case-skills/output/TestCases.xlsx`
+默认技能目录：运行时可能是 `.claude/skills/doublehit-case-skills`，源码仓库内可能是 `skills/doublehit-case-skills`。不要硬编码单一路径；执行写入或导出前先定位 `SKILL_ROOT`。
+默认缓冲文件：`$SKILL_ROOT/output/cases_buffer.json`
+默认导出脚本：`$SKILL_ROOT/scripts/case_exporter.py`
+默认导出文件：`$SKILL_ROOT/output/TestCases.xlsx`
 
 执行流程：
 
 1. 生成标准 JSON 数组。
-2. 写入 `cases_buffer.json` 时不要使用 `Write` 工具；该工具在未预读目标文件时会返回 `File has not been read yet`，容易造成中断。
-3. 不要使用 `cat > cases_buffer.json <<EOF` 或 `printf` 直接写正式 JSON；这类方式会先落盘再校验，JSON 缺逗号、截断或转义错误时会污染缓冲文件。
-4. 每一批都必须是完整、合法的 JSON 数组；分批时不要手动拼接半截数组、对象或逗号。
-5. 使用 Python 一次性完成“解析校验 + 覆盖写入”，只有 `json.loads` 成功后才落盘：
+2. 所有写入、校验和导出命令都必须先自动定位技能目录。运行时可能是 `.claude/skills/doublehit-case-skills`，源码仓库内可能是 `skills/doublehit-case-skills`；不要直接写死 `skills/doublehit-case-skills`。
+3. 写入 `cases_buffer.json` 时不要使用 `Write` 工具；该工具在未预读目标文件时会返回 `File has not been read yet`，容易造成中断。
+4. 不要使用 `cat > cases_buffer.json <<EOF` 或 `printf` 直接写正式 JSON；这类方式会先落盘再校验，JSON 缺逗号、截断或转义错误时会污染缓冲文件。
+5. 每一批都必须是完整、合法的 JSON 数组；分批时不要手动拼接半截数组、对象或逗号。
+6. 使用 Python 一次性完成“定位目录 + 解析校验 + 覆盖写入”，只有 `json.loads` 成功后才落盘：
 
 ```bash
 python - <<'PY'
 import json
 from pathlib import Path
 
+roots = [
+    Path('.claude/skills/doublehit-case-skills'),
+    Path('skills/doublehit-case-skills'),
+]
+skill_root = next((root for root in roots if (root / 'scripts' / 'case_exporter.py').exists()), None)
+if skill_root is None:
+    raise SystemExit('cannot find doublehit-case-skills root')
+
 raw = r'''REPLACE_WITH_COMPLETE_JSON_ARRAY'''
 data = json.loads(raw)
 if not isinstance(data, list):
     raise SystemExit('JSON root must be a list')
 
-path = Path('skills/doublehit-case-skills/output/cases_buffer.json')
+path = skill_root / 'output' / 'cases_buffer.json'
 path.parent.mkdir(parents=True, exist_ok=True)
 path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+print(f'buffer: {path}')
 print(f'valid cases: {len(data)}')
 PY
 ```
 
-6. 校验 JSON 合法性：
+7. 校验 JSON 合法性：
 
 ```bash
-python -c "import json; data=json.load(open('skills/doublehit-case-skills/output/cases_buffer.json', encoding='utf-8')); print(f'valid cases: {len(data)}')"
+python - <<'PY'
+import json
+from pathlib import Path
+
+roots = [
+    Path('.claude/skills/doublehit-case-skills'),
+    Path('skills/doublehit-case-skills'),
+]
+skill_root = next((root for root in roots if (root / 'output' / 'cases_buffer.json').exists()), None)
+if skill_root is None:
+    raise SystemExit('cannot find cases_buffer.json')
+
+data = json.load(open(skill_root / 'output' / 'cases_buffer.json', encoding='utf-8'))
+print(f'valid cases: {len(data)}')
+PY
 ```
 
-7. 如果解析报 `JSONDecodeError`，不要修补已写入文件；应重新生成更小的一批完整 JSON 数组，再重新执行第 5 步。
+8. 如果解析报 `JSONDecodeError`，不要修补已写入文件；应重新生成更小的一批完整 JSON 数组，再重新执行第 6 步。
 
-8. 第一次导出或需要覆盖旧文件时使用 `new`：
+9. 第一次导出或需要覆盖旧文件时使用 `new`：
 
 ```bash
-python skills/doublehit-case-skills/scripts/case_exporter.py skills/doublehit-case-skills/output/cases_buffer.json skills/doublehit-case-skills/output/TestCases.xlsx new
+SKILL_ROOT=$(python - <<'PY'
+from pathlib import Path
+roots = [Path('.claude/skills/doublehit-case-skills'), Path('skills/doublehit-case-skills')]
+for root in roots:
+    if (root / 'scripts' / 'case_exporter.py').exists():
+        print(root)
+        break
+else:
+    raise SystemExit('cannot find doublehit-case-skills root')
+PY
+)
+python "$SKILL_ROOT/scripts/case_exporter.py" "$SKILL_ROOT/output/cases_buffer.json" "$SKILL_ROOT/output/TestCases.xlsx" new
 ```
 
-9. 分批追加导出时使用 `append`：
+10. 分批追加导出时使用 `append`：
 
 ```bash
-python skills/doublehit-case-skills/scripts/case_exporter.py skills/doublehit-case-skills/output/cases_buffer.json skills/doublehit-case-skills/output/TestCases.xlsx append
+SKILL_ROOT=$(python - <<'PY'
+from pathlib import Path
+roots = [Path('.claude/skills/doublehit-case-skills'), Path('skills/doublehit-case-skills')]
+for root in roots:
+    if (root / 'scripts' / 'case_exporter.py').exists():
+        print(root)
+        break
+else:
+    raise SystemExit('cannot find doublehit-case-skills root')
+PY
+)
+python "$SKILL_ROOT/scripts/case_exporter.py" "$SKILL_ROOT/output/cases_buffer.json" "$SKILL_ROOT/output/TestCases.xlsx" append
 ```
 
-10. 确认导出命令成功后，向用户提供 Excel 文件路径。
-11. 导出完成后可删除缓冲文件，或将其重置为 `[]`，避免下次生成混入旧数据。
-12. 如果创建了任务清单，必须在每个阶段完成后立即更新状态：第一批写入并校验成功后标记第一批任务完成；第二批追加并校验成功后标记第二批任务完成；Excel 导出和分享成功后标记导出任务完成。最终答复前确认任务清单不再有 `in_progress` 或未完成的生成/导出任务。
+11. 确认导出命令成功后，向用户提供 Excel 文件路径。
+12. 导出完成后可删除缓冲文件，或将其重置为 `[]`，避免下次生成混入旧数据。
+13. 如果创建了任务清单，必须在每个阶段完成后立即更新状态：第一批写入并校验成功后标记第一批任务完成；第二批追加并校验成功后标记第二批任务完成；Excel 导出和分享成功后标记导出任务完成。最终答复前确认任务清单不再有 `in_progress` 或未完成的生成/导出任务。
 
 如果预计用例超过 15 条，建议分批生成并用 `append` 追加。每批必须独立生成、独立校验、独立导出，降低单次输出过长导致的 JSON 截断或逗号缺失风险。
